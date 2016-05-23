@@ -82,6 +82,7 @@ public class LCParser {
 			        }
 			    }
 				checkIfIndividualLoanIsWorthy();
+				Thread.sleep((int)(Math.random() * 2000));
 				driver.close();
 				driver.switchTo().window(originalHandle);
 				loanCount++;
@@ -99,7 +100,7 @@ public class LCParser {
 		System.out.println(goodLoanListWithoutCreditCheck);
 	}
 	
-	private boolean checkIfIndividualLoanIsWorthy() {
+	private boolean checkIfIndividualLoanIsWorthy() throws InterruptedException {
 		boolean isLoanGood = false;
 		List<WebElement> paymentHistory = driver.findElements(By.cssSelector("td[headers*='yui-dt0-th-status']"));
 		ArrayList<String> statusList = new ArrayList<String>();
@@ -107,55 +108,71 @@ public class LCParser {
 		int completedCount = 0;
 		int completedLateCount = 0;
 		int scheduledCount = 0;
+		boolean isPending = false;
+		boolean isPaymentPlan = false;
+		boolean enoughHistory = false;
 		boolean lastThreePaidAreCompleted = false;
 		boolean paymentHistoryIsGood = false;
 		
-		for(int i = 0; i<7; i++) {			
-			String status = paymentHistory.get(i).findElement(By.className("yui-dt-liner")).getText();
-			statusList.add(status);
-			if (status.startsWith("Completed - Late")) {
-				completedLateCount++;
-			}
-			else if (("Completed").equals(status)) {
-				completedCount++;
-			}
-			else if (("Scheduled").equals(status)) {
-				scheduledCount++;
-			}
-			else if (("Completed - In Grace Period").equals(status)) {
-				completedInGracePeriodCount++;
-			}
-		
-			//System.out.println(status);
-		}
-		
-		if(statusList.get(1).equals("Completed") && statusList.get(2).equals("Completed")  && statusList.get(2).equals("Completed")) {
-			lastThreePaidAreCompleted = true;
-		}
-		
-		if(lastThreePaidAreCompleted && completedCount >= 5 && completedLateCount <=1) {
-			paymentHistoryIsGood = true;
-		}
-		
-		if(paymentHistoryIsGood) {
+		if(paymentHistory.size() >= 7)
+		{
+			for(int i = 0; i<7; i++) {	
+				String status = paymentHistory.get(i).findElement(By.className("yui-dt-liner")).getText();
+				statusList.add(status);
+				
+				if(status.contains("Plan")) {
+					isPaymentPlan = true;
+					break;
+				}
+				if (status.startsWith("Pending")) {
+					isPending = true;
+					break;
+				}
+				if (status.startsWith("Completed - Late")) {
+					completedLateCount++;
+				}
+				else if (("Completed").equals(status)) {
+					completedCount++;
+				}
+				else if (("Scheduled").equals(status)) {
+					scheduledCount++;
+				}
+				else if (("Completed - In Grace Period").equals(status)) {
+					completedInGracePeriodCount++;
+				}
 			
-			String loanIdContainer = driver.findElement(By.cssSelector("div[class='data-container data-summary']")).findElement(By.tagName("h3")).getText();
-			String result = loanIdContainer.substring(loanIdContainer.lastIndexOf(" ") + 1, loanIdContainer.length() - 1);
-			goodLoanListWithoutCreditCheck.add(result);
-			boolean creditCheckPass = checkCreditScoreTrend();
-					
-			isLoanGood = creditCheckPass && paymentHistoryIsGood;
-			if(isLoanGood) {
-				//String loanIdContainer = driver.findElement(By.cssSelector("div[class='data-container data-summary']")).findElement(By.tagName("h3")).getText();
-				//String result = loanIdContainer.substring(loanIdContainer.lastIndexOf(" ") + 1, loanIdContainer.length() - 1);
-				goodLoanList.add(result);
-			}			
-		}
-		
+				//System.out.println(status);
+			}
+			
+			if(!isPending && !isPaymentPlan && statusList.get(1).equals("Completed") && statusList.get(2).equals("Completed")  && statusList.get(3).equals("Completed")) {
+				lastThreePaidAreCompleted = true;
+			}
+			
+			if(lastThreePaidAreCompleted && 
+					completedCount >= 5 && 
+					completedLateCount <=1) {
+				paymentHistoryIsGood = true;
+			}
+			
+			if(paymentHistoryIsGood) {
+				
+				String loanIdContainer = driver.findElement(By.cssSelector("div[class='data-container data-summary']")).findElement(By.tagName("h3")).getText();
+				String result = loanIdContainer.substring(loanIdContainer.lastIndexOf(" ") + 1, loanIdContainer.length() - 1);
+				goodLoanListWithoutCreditCheck.add(result);
+				boolean creditCheckPass = checkCreditScoreTrend();
+						
+				isLoanGood = creditCheckPass && paymentHistoryIsGood;
+				if(isLoanGood) {
+					//String loanIdContainer = driver.findElement(By.cssSelector("div[class='data-container data-summary']")).findElement(By.tagName("h3")).getText();
+					//String result = loanIdContainer.substring(loanIdContainer.lastIndexOf(" ") + 1, loanIdContainer.length() - 1);
+					goodLoanList.add(result);
+				}			
+			}
+		}		
 		return isLoanGood;
 	}
 	
-	private boolean checkCreditScoreTrend() {
+	private boolean checkCreditScoreTrend() throws InterruptedException {
 		boolean isCreditScoreTrendGood = false;
 		fluentWait(By.id("stats_graphs")).click();
 		
@@ -182,7 +199,7 @@ public class LCParser {
         }
         if(slope < 30) {
         	isCreditScoreTrendGood = true;
-        }      
+        }  
 		return isCreditScoreTrendGood;
 	}
 	
