@@ -108,15 +108,16 @@ public class LCParser {
 		int completedCount = 0;
 		int completedLateCount = 0;
 		int scheduledCount = 0;
+		int notRecievedCount = 0;
 		boolean isPending = false;
 		boolean isPaymentPlan = false;
 		boolean enoughHistory = false;
 		boolean lastThreePaidAreCompleted = false;
 		boolean paymentHistoryIsGood = false;
 		
-		if(paymentHistory.size() >= 7)
+		if(paymentHistory.size() >= 10)
 		{
-			for(int i = 0; i<7; i++) {	
+			for(int i = 0; i<10; i++) {	
 				String status = paymentHistory.get(i).findElement(By.className("yui-dt-liner")).getText();
 				statusList.add(status);
 				
@@ -140,6 +141,9 @@ public class LCParser {
 				else if (("Completed - In Grace Period").equals(status)) {
 					completedInGracePeriodCount++;
 				}
+				else if (("Not Received").equals(status)) {
+					notRecievedCount++;
+				}
 			
 				//System.out.println(status);
 			}
@@ -149,8 +153,9 @@ public class LCParser {
 			}
 			
 			if(lastThreePaidAreCompleted && 
-					completedCount >= 5 && 
-					completedLateCount <=1) {
+					completedCount >= 7 && 
+					completedLateCount <=1 &&
+					completedInGracePeriodCount <=1) {
 				paymentHistoryIsGood = true;
 			}
 			
