@@ -50,7 +50,7 @@ public class LCParser {
 		WebElement submitButton = driver.findElement(By.id("master_accountSubmit"));
 		submitButton.click();
 		Thread.sleep(1000);
-		driver.get("https://www.lendingclub.com/foliofn/tradingInventory.action?mode=search&search_from_rate=0.12&search_to_rate=0.29&fil_search_term=term_36&fil_search_term=term_60&search_loan_term=term_36&search_loan_term=term_60&opr_min=0.00&opr_max=Any&loan_status=loan_status_issued&loan_status=loan_status_current&remp_min=6&remp_max=15&askp_min=0.00&askp_max=Any&credit_score_min=600&credit_score_max=850&ytm_min=12&ytm_max=Any&credit_score_trend=UP&credit_score_trend=DOWN&credit_score_trend=FLAT&markup_dis_min=-100&markup_dis_max=0&ona_min=25&ona_max=Any");
+		driver.get("https://www.lendingclub.com/foliofn/tradingInventory.action?mode=search&search_from_rate=0.12&search_to_rate=0.29&fil_search_term=term_36&fil_search_term=term_60&search_loan_term=term_36&search_loan_term=term_60&opr_min=0.00&opr_max=Any&loan_status=loan_status_issued&loan_status=loan_status_current&remp_min=6&remp_max=15&askp_min=0.00&askp_max=Any&credit_score_min=605&credit_score_max=850&ytm_min=14&ytm_max=Any&credit_score_trend=UP&credit_score_trend=DOWN&credit_score_trend=FLAT&markup_dis_min=-100&markup_dis_max=0&ona_min=25&ona_max=Any");
 		new Select(fluentWait(By.id("yui-pg0-0-rpp45"))).selectByValue("250");
 		Thread.sleep(2000);
 		fluentWait(By.cssSelector("a[href*='yui-dt0-href-ytm']")).click();
@@ -179,6 +179,8 @@ public class LCParser {
 	
 	private boolean checkCreditScoreTrend() throws InterruptedException {
 		boolean isCreditScoreTrendGood = false;
+		boolean isSlopeOfLast8Good = false;
+		boolean isSlopeOfLast2Good = false;
 		fluentWait(By.id("stats_graphs")).click();
 		
 		WebElement chartData = fluentWait(By.name("flashvars"));
@@ -195,16 +197,27 @@ public class LCParser {
             chartRanges.add((minRange + maxRange) / 2);
         }    
         Collections.reverse(chartRanges);
-        int slope = 0;
+        int slopeOfLast8 = 0;
+        int slopeOfLast2 = 0;
         if(chartRanges.size() >= 8) {
-        	slope = chartRanges.get(7) - chartRanges.get(0);
+        	slopeOfLast8 = chartRanges.get(7) - chartRanges.get(0);        	
         }
         else {
-        	slope = chartRanges.get(chartRanges.size() - 1) - chartRanges.get(0);
+        	slopeOfLast8 = chartRanges.get(chartRanges.size() - 1) - chartRanges.get(0);
         }
-        if(slope < 30) {
+        if(slopeOfLast8 < 30) {
+        	isSlopeOfLast8Good = true;
+        }
+        slopeOfLast2 = chartRanges.get(1) - chartRanges.get(0);
+        
+        if(slopeOfLast2 < 20 ) {
+        	isSlopeOfLast2Good = true;
+        }
+        
+        if(isSlopeOfLast2Good && isSlopeOfLast8Good) {
         	isCreditScoreTrendGood = true;
-        }  
+        }
+        
 		return isCreditScoreTrendGood;
 	}
 	
